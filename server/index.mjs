@@ -1,4 +1,5 @@
 import express from 'express'
+import 'dotenv/config'
 import { readFile, writeFile, mkdir, rename } from 'fs/promises'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -8,6 +9,8 @@ const ROOT = join(__dirname, '..')
 const DATA_DIR = join(ROOT, 'data')
 const DATA_FILE = join(DATA_DIR, 'site-data.json')
 const DIST = join(ROOT, 'dist')
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
 const app = express()
 app.use(express.json({ limit: '50mb' }))
@@ -57,6 +60,17 @@ app.put('/api/data', async (req, res) => {
     console.error(e)
     res.status(500).json({ error: 'Không ghi được dữ liệu' })
   }
+})
+
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body || {}
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Thiếu thông tin đăng nhập' })
+  }
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' })
+  }
+  res.json({ ok: true })
 })
 
 const isProd = process.env.NODE_ENV === 'production'

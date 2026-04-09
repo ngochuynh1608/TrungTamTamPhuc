@@ -251,6 +251,7 @@ export function AppProvider({ children }) {
     contacts: [],
   }))
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [canPersistToApi, setCanPersistToApi] = useState(false)
   const hydrated = useRef(false)
   const persistTimer = useRef(null)
 
@@ -265,9 +266,11 @@ export function AppProvider({ children }) {
           settings: deepMerge(DEFAULT_SETTINGS, migrated.settings),
           contacts: migrated.contacts ?? [],
         })
+        setCanPersistToApi(true)
       } catch {
         if (cancelled) return
         setData(loadStateFromLocalStorage())
+        setCanPersistToApi(false)
       } finally {
         if (!cancelled) {
           hydrated.current = true
@@ -284,6 +287,12 @@ export function AppProvider({ children }) {
     if (!hydrated.current || !dataLoaded) return
     clearTimeout(persistTimer.current)
     persistTimer.current = setTimeout(() => {
+      if (!canPersistToApi) {
+        try {
+          localStorage.setItem('tamphuc_data', JSON.stringify({ settings: data.settings, contacts: data.contacts }))
+        } catch (_) {}
+        return
+      }
       persistSiteData({ settings: data.settings, contacts: data.contacts }).catch((err) => {
         console.warn('[tamphuc] Không ghi được API, thử lưu cục bộ:', err)
         try {
@@ -292,7 +301,7 @@ export function AppProvider({ children }) {
       })
     }, 700)
     return () => clearTimeout(persistTimer.current)
-  }, [data.settings, data.contacts, dataLoaded])
+  }, [data.settings, data.contacts, dataLoaded, canPersistToApi])
 
   const nextId = () => Date.now() + Math.floor(Math.random() * 1000)
 

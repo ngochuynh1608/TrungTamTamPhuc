@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const CREDENTIALS = { username: 'admin', password: 'admin123' }
-
 export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
@@ -15,20 +13,30 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    setTimeout(() => {
-      if (form.username === CREDENTIALS.username && form.password === CREDENTIALS.password) {
-        sessionStorage.setItem('adm_auth', '1')
-        navigate('/admin/dashboard')
-      } else {
-        setError('Tên đăng nhập hoặc mật khẩu không đúng.')
-        setLoading(false)
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: form.username.trim(),
+          password: form.password,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Đăng nhập thất bại')
       }
-    }, 800)
+      sessionStorage.setItem('adm_auth', '1')
+      navigate('/admin/dashboard')
+    } catch (err) {
+      setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng.')
+      setLoading(false)
+    }
   }
 
   return (
